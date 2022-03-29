@@ -1,26 +1,32 @@
+# ***************************************
+# Imports
+# ***************************************
+# Dash
 import dash
-import dash_core_components as dcc
-import dash_html_components as html
+from dash import html
+from dash import dcc
 from dash.dependencies import Input, Output
 
 # Div.
 import pandas as pd
 import numpy as np
 import calendar
- 
+
 # Plotly
 import plotly.express as px
 import plotly.graph_objects as go
 
-
+# ***************************************
 # Get data
+# ***************************************
 import datamodel
 order = datamodel.get_data()
 df_year = datamodel.get_year()
 df_month = datamodel.get_month()
 
+# ***************************************
 # Diagram - Employee Sales
-
+# ***************************************
 fig_employee = px.bar(order, 
     x='emp_name', y='total', 
     color='type', text='total', title='Sales by Employee',
@@ -29,9 +35,28 @@ fig_employee = px.bar(order,
 fig_employee.update_traces(texttemplate='%{text:.2s}', textposition='outside')
 fig_employee.update_layout(uniformtext_minsize=8, uniformtext_mode='hide', xaxis_tickangle=45)
 
+# ***************************************
+# Diagram - Product Sales
+# ***************************************
+fig_product = px.bar(order, 
+    x='productname', y='total', 
+    color='type', text='total', title='Sales by Product',
+    hover_data=[],
+    labels={'total':'Total sales', 'productname':'Product', 'type':'Product Type'})
+fig_product.update_traces(texttemplate='%{text:.2s}', textposition='outside')
+fig_product.update_layout(uniformtext_minsize=8, uniformtext_mode='hide', xaxis_tickangle=45)
+
+# ***************************************
+# Activate the app
+# ***************************************
+#app = dash.Dash(__name__)
+
 dash_app = dash.Dash(__name__)
 app = dash_app.server
 
+# ***************************************
+# Layout
+# ***************************************
 dash_app.layout = html.Div(
     children=[
         html.Div(className='row',
@@ -53,9 +78,14 @@ dash_app.layout = html.Div(
                             ),
                             ]
                     ),
-                    html.Div(className='eight columns div-for-charts bg-grey',
+                    html.Div(className='div-for-charts',
                             children=[
                                 dcc.Graph(id="sales_employee", figure=fig_employee)
+                            ]
+                    ),
+                    html.Div(className='div-for-charts',
+                            children=[
+                                dcc.Graph(id="sales_product", figure=fig_product)
                             ]
                     ),
                 ]
@@ -63,6 +93,11 @@ dash_app.layout = html.Div(
         ]
 )
 
+# ***************************************
+# Callbacks
+# ***************************************
+# Output er diagrammet
+# Input er DropDown
 @dash_app.callback(Output('sales_employee', 'figure'),
               [Input('drop_month', 'value')],
               [Input('drop_year', 'value')])
@@ -70,22 +105,28 @@ dash_app.layout = html.Div(
 def update_graph(drop_month, drop_year):
     if drop_year:
         if drop_month:
+            # Data i både drop_month og drop_year
             order_fig1 = order.loc[(order['orderyear'] == drop_year) & (order['ordermonth'] == drop_month)]
         else:
+            # Data i drop_year. men ikke drop_month
             order_fig1 = order.loc[order['orderyear'] == drop_year]
     else:
         if drop_month:
+            # Data i drop_month, men ikke drop_year
             order_fig1 = order.loc[order['ordermonth'] == drop_month]
         else:
+            # Ingen data - ikke noget valgt
             order_fig1 = order
         
     return {'data':[go.Bar(
-        x = order_fig1['productname'],
+        x = order_fig1['emp_name'],
         y = order_fig1['total']
             )
         ]
     }
 
+# ***************************************
 # Run the app
+# ***************************************
 if __name__ == '__main__':
     dash_app.run_server(debug=True)
